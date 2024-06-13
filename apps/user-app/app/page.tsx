@@ -4,6 +4,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import HelloComponent from "../components/hello";
 
 export default function Page(): JSX.Element {
   // const balance = useBalance();
@@ -50,6 +51,7 @@ export default function Page(): JSX.Element {
           <br />
           <p>Already have an account</p>
           <button onClick={() => signIn("")}>Sign in</button>
+          <HelloComponent />
         </>
       )}
       {/* <p>your balance is {balance}</p> */}
