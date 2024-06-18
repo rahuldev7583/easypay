@@ -1,44 +1,42 @@
 "use client";
-// import { Button } from "@repo/ui/components/ui/button";
-// import { useBalance } from "@repo/store";
+import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import HelloComponent from "../components/hello";
+import { trpc } from "../server/client";
 
 export default function Page(): JSX.Element {
-  // const balance = useBalance();
   const { data: session } = useSession();
-  const [user, setUser] = useState<any>({});
   const router = useRouter();
 
+  // Use tRPC query hook to get user data
+  const {
+    data: userData,
+    isLoading,
+    error,
+  } = trpc.user.getUser.useQuery(undefined, {
+    enabled: !!session, // Only run query if session is available
+  });
+
   useEffect(() => {
-    const fetchUser = async () => {
-      if (session) {
-        try {
-          const response = await fetch("/api/user");
-          const user = await response.json();
-          setUser(user);
-          console.log(user);
+    if (userData && !userData.number) {
+      router.push("/addnumber");
+    }
+  }, [userData, router]);
 
-          if (!user.number || user.number == null) {
-            router.push("/addnumber");
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    };
+  if (isLoading) {
+    return <p>Loading...</p>;
+  }
 
-    fetchUser();
-  }, [session]);
+  if (error) {
+    return <p>Error fetching user data: {error.message}</p>;
+  }
 
   return (
     <main className="">
       {session ? (
         <>
           Signed in as {session.user?.email} <br />
-          {/* {<p>phone number {user.number}</p>} */}
+          {userData && <p>Phone number: {userData.number}</p>}
           <button onClick={() => signOut()}>Sign out</button>
         </>
       ) : (
@@ -51,10 +49,8 @@ export default function Page(): JSX.Element {
           <br />
           <p>Already have an account</p>
           <button onClick={() => signIn("")}>Sign in</button>
-          <HelloComponent />
         </>
       )}
-      {/* <p>your balance is {balance}</p> */}
     </main>
   );
 }

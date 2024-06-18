@@ -1,7 +1,8 @@
 "use client";
+
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { trpc } from "../../../server/client";
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -13,7 +14,10 @@ export default function SignUpPage() {
 
   const router = useRouter();
 
-  const handleChange = (e: any) => {
+  // Using useMutation hook from trpc
+  const signupMutation = trpc.signupRouter.signup.useMutation();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
@@ -21,26 +25,11 @@ export default function SignUpPage() {
     }));
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-      if (response.ok) {
-        // await signIn("credentials", {
-        //   email: formData.email,
-        //   password: formData.password,
-        //   callbackUrl: "/auth/", // Redirect user after sign-up
-        // });
-        alert(
-          "You've signed up successfully! Please check your email for a verification link before logging in."
-        );
-
+    signupMutation.mutate(formData, {
+      onSuccess: (data) => {
+        alert(data.message);
         setFormData({
           name: "",
           email: "",
@@ -48,13 +37,11 @@ export default function SignUpPage() {
           password: "",
         });
         router.push("/");
-      } else {
-        const data = await response.json();
-        console.error("Sign up failed:", data.message);
-      }
-    } catch (error) {
-      console.error("Error signing up:", error);
-    }
+      },
+      onError: (error) => {
+        console.error("Sign up failed:", error.message);
+      },
+    });
   };
 
   return (
@@ -66,6 +53,7 @@ export default function SignUpPage() {
           name="name"
           value={formData.name}
           onChange={handleChange}
+          required
         />
       </label>
       <br />
@@ -76,6 +64,7 @@ export default function SignUpPage() {
           name="email"
           value={formData.email}
           onChange={handleChange}
+          required
         />
       </label>
       <br />
@@ -86,6 +75,7 @@ export default function SignUpPage() {
           name="number"
           value={formData.number}
           onChange={handleChange}
+          required
         />
       </label>
       <br />
@@ -96,10 +86,14 @@ export default function SignUpPage() {
           name="password"
           value={formData.password}
           onChange={handleChange}
+          required
         />
       </label>
       <br />
-      <button type="submit">Sign Up</button>
+      <button type="submit" disabled={signupMutation.isPending}>
+        {signupMutation.isPending ? "Signing up..." : "Sign Up"}
+      </button>
+      {signupMutation.error && <p>{signupMutation.error.message}</p>}
     </form>
   );
 }
